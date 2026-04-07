@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>代码之神EP02-系统追踪者</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --card-bg: #161b22;
+  --card-border: #30363d;
+  --text: #e6edf3;
+  --text-secondary: #8b949e;
+  --accent: #58a6ff;
+  --dialogue-bg: rgba(88,166,255,0.08);
+  --dialogue-color: #79c0ff;
+  --part-num-color: #f0883e;
+  --camera-bg: rgba(139,148,158,0.08);
+  --header-gradient: linear-gradient(135deg, #1a1f2e 0%, #0d1117 100%);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: -apple-system, "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+.container {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 16px;
+}
+/* Header */
+.page-header {
+  background: var(--header-gradient);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 24px 20px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+.page-header h1 {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  background: linear-gradient(90deg, #58a6ff, #bc8cff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.meta-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+.meta-tag {
+  display: inline-block;
+  font-size: 12px;
+  padding: 2px 10px;
+  border-radius: 99px;
+  background: rgba(88,166,255,0.1);
+  color: var(--accent);
+  border: 1px solid rgba(88,166,255,0.2);
+}
+/* Collapsible sections */
+details {
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  margin-bottom: 12px;
+  background: var(--card-bg);
+}
+details summary {
+  padding: 14px 16px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  user-select: none;
+}
+details summary:hover { color: var(--text); }
+details[open] summary { border-bottom: 1px solid var(--card-border); }
+.section-body {
+  padding: 12px 16px;
+}
+/* Character items */
+.char-item {
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(48,54,61,0.5);
+  font-size: 14px;
+}
+.char-item:last-child { border-bottom: none; }
+.char-dot {
+  display: inline-block;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.char-desc {
+  display: block;
+  margin-top: 4px;
+  margin-left: 16px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+}
+/* Scene items */
+.scene-item {
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(48,54,61,0.5);
+  font-size: 14px;
+}
+.scene-item:last-child { border-bottom: none; }
+.scene-desc {
+  display: block;
+  margin-top: 4px;
+  margin-left: 4px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+}
+/* Segment card */
+.segment-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.segment-card:hover {
+  border-color: rgba(88,166,255,0.4);
+}
+.segment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px 8px;
+}
+.segment-num {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.segment-dur {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: rgba(240,136,62,0.12);
+  color: var(--part-num-color);
+}
+.segment-meta {
+  padding: 0 16px 10px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+/* Physical state inside segment */
+.segment-card .physical-state {
+  border: none;
+  border-radius: 0;
+  margin: 0;
+  border-top: 1px solid var(--card-border);
+  border-bottom: 1px solid var(--card-border);
+  background: rgba(139,148,158,0.03);
+}
+.segment-card .physical-state summary {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.ps-item {
+  padding: 4px 16px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+/* Parts */
+.parts-container {
+  padding: 10px 16px 6px;
+}
+.part-line {
+  padding: 8px 0;
+  font-size: 15px;
+  line-height: 1.8;
+  border-bottom: 1px solid rgba(48,54,61,0.3);
+}
+.part-line:last-child { border-bottom: none; }
+.part-num {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--part-num-color);
+  background: rgba(240,136,62,0.1);
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+.char-tag {
+  font-weight: 600;
+}
+.dialogue {
+  color: var(--dialogue-color);
+  background: var(--dialogue-bg);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-style: italic;
+}
+/* Camera */
+.camera-line {
+  padding: 8px 16px 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  background: var(--camera-bg);
+  border-top: 1px solid var(--card-border);
+}
+/* Stats */
+.stats-bar {
+  text-align: center;
+  padding: 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+.stats-bar span {
+  margin: 0 8px;
+}
+/* Mobile tweaks */
+@media (max-width: 480px) {
+  .container { padding: 10px; }
+  .page-header { padding: 18px 14px; }
+  .page-header h1 { font-size: 19px; }
+  .part-line { font-size: 14px; }
+  .segment-header { padding: 10px 12px 6px; }
+  .parts-container { padding: 8px 12px 4px; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="page-header">
+  <h1>代码之神EP02-系统追踪者</h1>
+  <div class="meta-tags">
+    <span class="meta-tag">🎬 realistic</span>
+    <span class="meta-tag">🌍 现代都市2025，赛博朋克元素</span>
+    <span class="meta-tag">🎨 cinematic cyberpunk realism, warm neon-l...</span>
+    <span class="meta-tag">📊 20 segments</span>
+  </div>
+</div>
+
+<div class="stats-bar">
+  <span>👤 4 角色</span>
+  <span>🏞️ 5 场景</span>
+  <span>🎬 20 分镜</span>
+</div>
+
+<details>
+  <summary>👤 角色设定 (4)</summary>
+  <div class="section-body"><div class="char-item"><span class="char-dot" style="background:#e74c3c"></span><strong>[陈码]</strong><span class="char-desc">28岁男性，身高178cm偏瘦体型，苍白皮肤，窄长脸，黑眼圈深重，戴黑色方框眼镜，黑色凌乱短发，身穿灰色连帽卫衣和深蓝牛仔裤，白色运动鞋</span></div>
+<div class="char-item"><span class="char-dot" style="background:#3498db"></span><strong>[404姐]</strong><span class="char-desc">全息投影形态的AI，外形为25岁女性，身高168cm纤细体型，半透明蓝白色光效皮肤，瓜子脸，细长眼总带翻白眼表情，银白色利落齐耳短发，身穿半透明蓝光制服，边缘有数据流粒子</span></div>
+<div class="char-item"><span class="char-dot" style="background:#2ecc71"></span><strong>[林可]</strong><span class="char-desc">27岁女性，身高165cm干练体型，小麦色皮肤，鹅蛋脸，杏眼明亮，黑色高马尾，身穿白色衬衫外搭米色风衣，左手腕内侧有一道极淡的蓝色光痕</span></div>
+<div class="char-item"><span class="char-dot" style="background:#f39c12"></span><strong>[赵启明]</strong><span class="char-desc">50岁男性，身高180cm精干体型，肤色偏白，方脸轮廓分明，鹰钩鼻，灰白极短发，身穿黑色高领毛衣外搭深灰色西装，黑色皮鞋，气场冷酷精英</span></div>
+</div>
+</details>
+
+<details>
+  <summary>🏞️ 场景描述 (5)</summary>
+  <div class="section-body"><div class="scene-item"><strong>[陈码公寓-夜]</strong><span class="scene-desc">狭小的出租屋，三面墙贴满便利贴和代码打印纸，桌上两台显示器亮着绿色终端，桌角泡面碗冒着热气，窗外霓虹灯光透过百叶窗</span></div>
+<div class="scene-item"><strong>[城市街道-夜]</strong><span class="scene-desc">雨后的城市主街，路面反射着红绿交通灯光，两侧是便利店和奶茶店招牌，人流稀疏，电子屏幕和ATM机沿街分布</span></div>
+<div class="scene-item"><strong>[街角咖啡店-夜]</strong><span class="scene-desc">暖色调小咖啡店，落地玻璃窗，木质桌椅，吧台上方悬挂暖黄吊灯，窗外可见雨后街景</span></div>
+<div class="scene-item"><strong>[商业街-夜]</strong><span class="scene-desc">宽阔的商业步行街，两侧高楼LED屏幕密集，法国梧桐行道树，路边停着共享单车，落叶铺满湿润地面</span></div>
+<div class="scene-item"><strong>[废弃网吧-夜]</strong><span class="scene-desc">地下室空间，墙角堆着老旧CRT显示器，天花板上残留的霓虹灯管闪烁蓝紫色光，折叠桌上摊着几台拆解的主机，角落有一张破旧沙发</span></div>
+</div>
+</details>
+
+
+<div class="segment-card">
+  <div class="segment-header">
+    <span class="segment-num">Segment 1</span>
+    <span class="segment-dur">≤15s</span>
+  </div>
+  <div class="segment-meta">📍 [陈码公寓-夜] &nbsp;|&nbsp; 👥 <span class="char-tag" style="color:#e74c3c">[陈码]</span>, <span class="char-tag" style="color:#3498db">[404姐]</span></div>
+  <details class="physical-state">
+<summary>📐 Physical State</summary>
+<div class="ps-item">**<span class="char-tag" style="color:#e74c3c">[陈码]</span>**: 画面左侧，坐在电脑椅上，右手拿着筷子夹着泡面送往嘴边，视线看向桌上的显示器屏幕</div><div class="ps-item">**<span class="char-tag" style="color:#3498db">[404姐]</span>**: 画面右侧显示器上方，半透明全息形态悬浮，双臂交叉抱胸，视线翻着白眼看向左侧的陈码</div>
+</details>
+  <div class="parts-container">
+    <div class="part-line"><span class="part-num">P1</span>显示器突然弹出血红色警告窗口，屏幕上的代码全部变成红色闪烁的<span class="dialogue">“TRACKING DETECTED”</span>字样。</div>
+<div class="part-line"><span class="part-num">P2</span><span class="char-tag" style="color:#3498db">[404姐]</span>全息投影突然从屏幕上方弹出，双臂抱胸，翻了个大白眼，说：<span class="dialogue">“有人在扫描你的进程，建议立刻跑路。”</span></div>
+<div class="part-line"><span class="part-num">P3</span><span class="char-tag" style="color:#e74c3c">[陈码]</span>筷子停在半空，泡面的热气模糊了眼镜片，嘴里含着面条含糊地说：<span class="dialogue">“能不能先让我吃完这碗泡面？”</span></div>
+<div class="part-line"><span class="part-num">P4</span><span class="char-tag" style="color:#3498db">[404姐]</span>歪头，嘴角抽搐，说：<span class="dialogue">“你的泡面比命值钱？”</span>——停顿一秒，深吸一口气——<span class="dialogue">“好吧确实挺香的。”</span></div>
+
+  </div>
+  <div class="camera-line">🎥 中景，平视角度，固定机位，正常速度</div>
+</div>
+
+<div class="segment-card">
+  <div class="segment-header">
+    <span class="segment-num">Segment 2</span>
+    <span class="segment-dur">≤15s</span>
+  </div>
+  <div class="segment-meta">📍 [陈码公寓-夜] &nbsp;|&nbsp; 👥 <span class="char-tag" style="color:#e74c3c">[陈码]</span>, <span class="char-tag" style="color:#3498db">[404姐]</span></div>
+  <details class="physical-state">
+<summary>📐 Physical State</summary>
+<div class="ps-item">**<span class="char-tag" style="color:#e74c3c">[陈码]</span>**: 画面左侧，放下筷子站起来，双手撑在桌面上，视线紧盯显示器上的追踪信号图</div><div class="ps-item">**<span class="char-tag" style="color:#3498db">[404姐]</span>**: 画面右侧悬浮，右手食指点着空气中展开的城市热力图，视线看向热力图</div>
+</details>
+  <div class="parts-container">
+    <div class="part-line"><span class="part-num">P1</span><span class="char-tag" style="color:#3498db">[404姐]</span>右手一挥，空中展开半透明的城市热力图，上面有一个红色光点正在逼近陈码的位置。</div>
+<div class="part-line"><span class="part-num">P2</span><span class="char-tag" style="color:#3498db">[404姐]</span>皱眉说：<span class="dialogue">“对方在用暴力搜索，像用for循环遍历整个城市来找你，效率低但覆盖面恐怖。”</span></div>
+<div class="part-line"><span class="part-num">P3</span><span class="char-tag" style="color:#e74c3c">[陈码]</span>推了推眼镜，额头渗出冷汗，喃喃说：<span class="dialogue">“赵启明……他果然没放弃。”</span></div>
+<div class="part-line"><span class="part-num">P4</span><span class="char-tag" style="color:#e74c3c">[陈码]</span>一把抓起桌上的笔记本电脑塞进背包，转身冲向门口，404姐的全息投影跟着飘移。</div>
+
+  </div>
+  <div class="camera-line">🎥 近景转中景，平视角度，推镜头跟随陈码起身，正常速度</div>
+</div>
+
+<div class="segment-card">
+  <div class="segment-header">
+    <span class="segment-num">Segment 3</span>
+    <span class="segment-dur">≤15s</span>
+  </div>
+  <div class="segment-meta">📍 [城市街道-夜] &nbsp;|&nbsp; 👥 <span class="char-tag" style="color:#e74c3c">[陈码]</span></div>
+  <details class="physical-state">
+<summary>📐 Physical State</summary>
+<div class="ps-item">**<span class="char-tag" style="color:#e74c3c">[陈码]</span>**: 画面中央，低头快步行走，帽兜拉起遮住半张脸，双手插在卫衣口袋里，视线警惕地看向左前方的路口</div>
+</details>
+  <div class="parts-container">
+    <div class="part-line"><span class="part-num">P1</span><span class="char-tag" style="color:#e74c3c">[陈码]</span>走出公寓楼，雨后的街道湿漉漉的，路灯光在水面上拉出长长的倒影。</div>
+<div class="part-line"><span class="part-num">P2</span>街对面的红绿灯突然开始疯狂闪烁，红黄绿三色无规律切换，路口的车辆纷纷急刹。</div>
+<div class="part-line"><span class="part-num">P3</span>右侧ATM机屏幕突然亮起，开始自动吐出钞票，纸币在风中飘散，路人惊呼着跑过去捡。</div>
+<div class="part-line"><span class="part-num">P4</span><span class="char-tag" style="color:#e74c3c">[陈码]</span>脚步一顿，瞳孔收缩，额头青筋跳动，低声说：<span class="dialogue">“扫描波到了……整条街的电子设备都被感染了。”</span></div>
+
+  </div>
+  <div class="camera-line">🎥 全景转中景，略带俯角，跟镜头随陈码行走，正常速度</div>
+</div>
+
+<div class="segment-card">
+  <div class="segment-header">
+    <span class="segment-num">Segment 4</span>
+    <span class="segment-dur">≤15s</span>
+  </div>
+  <div class="segment-meta">📍 [城市街道-夜] &nbsp;|&nbsp; 👥 <span class="char-tag" style="color:#e74c3c">[陈码]</span>, <span class="char-tag" style="color:#3498db">[404姐]</span></div>
+  <details class="physical-state">
+<summary>📐 Physical State</summary>
+<div class="ps-item">**<span class="char-tag" style="color:#e74c3c">[陈码]</span>**: 画面左侧，蹲在路边花坛后面，笔记本电脑摊在膝盖上，十指飞速敲击键盘，视线紧盯屏幕</div><div class="ps-item">**<span class="char-tag" style="color:#3498db">[404姐]</span>**: 画面右侧陈码肩膀上方，缩小版全息悬浮，双臂抱胸，视线看向陈码的屏幕</div>
+</details>
+  <div class="parts-container">
+    <div class="part-line"><span class="part-num">P1</span><span class="char-tag" style="color:#e74c3c">[陈码]</span>蹲在花坛后面，快速在笔记本上敲出一段代码，嘴里念念有词：<span class="dialogue">“try-catch包裹自身进程，异常隐身……”</span></div>
+<div class="part-line"><span class="part-num">P2</span><span class="char-tag" style="color:#3498db">[404姐]</span>探头看了一眼代码，嘴角一撇说：<span class="dialogue">“这破代码能跑起来算我输。”</span></div>
+<div class="part-line"><span class="part-num">P3</span><span class="char-tag" style="color:#e74c3c">[陈码]</span>深吸一口气，手指重重按下回车键，一圈蓝色数据光波从他身体向外扩散。</div>
+<div class="part-line"><span class="part-num">P4</span>光波过后，周围所有电子屏幕上陈码的影像全部消失——但他本人还好端端蹲在那里。</div>
+
+  </div>
+  <div class="camera-line">🎥 近景，略带俯角，固定机位，正常速度</div>
+</div>
+
+<div class="segment-card">
+  <div class="segment-header">
+    <span class="segment-num">Segment 5</span>
+    <span class="segment-dur">≤15s</span>
+  </div>
+  <div class="segment-meta">📍 [城市街道-夜] &nbsp;|&nbsp; 👥 <span class="char-tag" style="color:#e74c3c">[陈码]</span>, <span class="char-tag" style="color:#3498db">[404姐]</span></div>
+  <details class="physical-state">
+<summary>📐 Physical State</summary>
+<div class="ps-item">**<span class="char-tag" style="color:#e74c3c">[陈码]</span>**: 画面中央，站起身，低头看着自己的双手，表情困惑，视线看向自己的手掌</div><div class="ps-item">**<span class="char-tag" style="color:#3498db">[404姐]</span>**: 画面右上角悬浮，捂着嘴偷笑，肩膀一抖一抖，视线看向陈码</div>
+</details>
+  <div class="parts-container">
+    <div class="part-line"><span class="part-num">P1</span><span class="char-tag" style="color:#e74c3c">[陈码]</span>站起来，低头看了看自己——完全正常，松了口气说：<span class="dialogue">“成了，隐身了！”</span></div>
+<div class="part-line"><span class="part-num">P2</span>一个路过的大妈突然尖叫，指着陈码的方向：<span class="dialogue">“天哪那个人刚才消失了又出现了！见鬼了！”</span></div>
+<div class="part-line"><span class="part-num">P3</span><span class="char-tag" style="color:#e74c3c">[陈码]</span>整个人僵住，缓缓转头看向大妈，嘴角抽搐，冷汗直冒。</div>
+<div class="part-line"><span class="part-num">P4</span><span class="char-tag" style="color:#3498db">[404姐]</span>笑得全息投影都在抖，幸灾乐祸地说：<span class="dialogue">“恭喜，你成功对电子设备隐身了——但人眼还是能看见你。Bug率百分之百，不愧是你。”</span></div>
+
+  </div>
+  <div class="camera-line">🎥 中景，平视角度，固定机位转跟镜头，正常速度</div>
+</div>
+
+<div class="segment-card">
+  <div class="segment-header">
+    <span class="segment-num">Segment 6</span>
+    <span class="segment-dur">≤15s</span>
+  </div>
+  <div class="segment-meta">📍 [街角咖啡店-夜] &nbsp;|&nbsp; 👥 <span class="char-tag" style="color:#e74c3c">[陈码]</span>, <span class="char-tag" style="color:#2ecc71">[林可]</span></div>
+  <details class="physical-state">
+<summary>📐 Physical State</summary>
+<div class="ps-item">**<span class="char-tag" style="color:#2ecc71">[林可]</span>**: 画面右侧，坐在靠窗位置，右手握着咖啡杯，左手轻轻招手，视线看向门口方向的陈码</div><div class="ps-item">**<span class="char-tag" style="color:#e74c3c">[陈码]</span>**: 画面左侧门口处，帽兜还没摘，半个身子探进店里，视线警惕地看向右侧的林可</div>
+</details>
+  <div class="parts-container">
+    <div class="part-line"><span class="part-num">P1</span><span class="char-tag" style="color:#e74c3c">[陈码]</span>低头快步穿过街道，突然听到有人叫他的名字，脚步一顿。</div>
+<div class="part-line"><span class="part-num">P2</span>街角咖啡店的落地窗内，<span class="char-tag" style="color:#2ecc71">[林可]</span>坐在靠窗的位置，右手端着拿铁，左手朝陈码招了招。</div>
+<div class="part-line"><span class="part-num">P3</span><span class="char-tag" style="color:#e74c3c">[陈码]</span>犹豫了两秒，环顾四周确认没有异常，拉开玻璃门走进咖啡店。</div>
+<div class="part-line"><span class="part-num">P4</span><span class="char-tag" style="color:#2ecc71">[林可]</span>放下咖啡杯，表情严肃，开门见山说：<span class="dialogue">“你需要立刻离开这个区域，赵启明已经知道了。”</span></div>
+
+  </div>
+  <div class="camera-line">🎥 全景转中景，平视角度，推镜头从街景进入咖啡店内，正常速度</div>
+</div>
+
+<div class="segment-card">
+  <div class="segment-header">
+    <span class="segment-num">Segment 7</span>
+    <span class="segment-dur">≤15s</span>
+  </div>
+  <div class="segment-meta">📍 [街角咖啡店-夜] &nbsp;|&nbsp; 👥 <span class="char-tag" style="color:#e74c3c">[陈码]</span>, <span class="char-tag" style="color:#2ecc71">[林可]</span>, <span class="char-tag" style="color:#3498db">[404姐]</span></div>
+  <details class="physical-state">
+<summary>📐 Physical State</summary>
+<div class="ps-item">**<span class="char-tag" style="color:#e74c3c">[陈码]</span>**: 画面左侧，坐到林可对面，双手放在桌上，身体前倾，视线震惊地看向右侧的林可</div><div class="ps-item">**<span class="char-tag" style="color:#2ecc71">[林可]</span>**: 画面右侧，双手交叉放在桌上，表情冷静，视线直视左侧的陈码</div><div class="ps-item">**<span class="char-tag" style="color:#3498db">[404姐]</span>**: 画面左上角，缩小版全息悬浮在陈码耳边，眉头紧皱，视线警惕地盯着林可</div>
+</details>
+  <div class="parts-container">
+    <div class="part-line"><span class="part-num">P1</span><span class="char-tag" style="color:#e74c3c">[陈码]</span>瞪大眼睛，声音发颤说：<span class="dialogue">“你怎么知道赵启明的事？你怎么知道我的……能力？”</span></div>
+<div class="part-line"><span class="part-num">P2</span><span class="char-tag" style="color:#2ecc71">[林可]</span>微微低头，左手无意识地摩挲右手腕内侧那道淡蓝色光痕，语气平静说：<span class="dialogue">“因为我一直在赵启明公司做卧底，保护'源码项目'的秘密。”</span></div>
+<div class="part-line"><span class="part-num">P3</span><span class="char-tag" style="color:#e74c3c">[陈码]</span>张了张嘴还没说话，耳边传来404姐极小声的警告：<span class="dialogue">“这个女的有问题——我检测到她身上有微弱的系统能量残留，v0.3版本的痕迹。”</span></div>
+<div class="part-line"><span class="part-num">P4</span><span class="char-tag" style="color:#e74c3c">[陈码]</span>表情一僵，眼神在林可和耳边的404姐之间来回游移，手指不自觉地在桌面上敲击。</div>
+
+  </div>
+  <div class="camera-line">🎥 近景，平视角度，正反打切换，正常速度</div>
+</div>
+
+<div class="segment-card">
+  <div class="segment-header">
+    <span class="segment-num">Segment 8</span>
+    <span class="segment-dur">≤15s</span>
+  </div>
+  <div class="segment-meta">📍 [街角咖啡店-夜] &nbsp;|&nbsp; 👥 <span class="char-tag" style="color:#e74c3c">[陈码]</span>, <span class="char-tag" style="color:#2ecc71">[林可]</span></div>
+  <details class="physical-state">
+<summary>📐 Physical State</summary>
+<div class="ps-item">**<span class="char-tag" style="color:#2ecc71">[林可]</span>**: 画面右侧，身体向前倾，右手握住陈码的左手腕，表情急切，视线直视陈码的眼睛</div><div class="ps-item">**<span class="char-tag" style="color:#e74c3c">[陈码]</span>**: 画面左侧，被握住手腕微微后仰，表情纠结，视线看向林可的手</div>
+</details>
+  <div class="parts-container">
+    <div class="part-line"><span class="part-num">P1</span><span class="char-tag" style="color:#2ecc71">[林可]</span>突然伸手握住陈码的手腕，力度很大，急切地说：<span class="dialogue">“相信我，我们没时间了，赵启明的追踪队已经到了这个区域。”</span></div>
+<div class="part-line"><span class="part-num">P2</span><span class="char-tag" style="color:#e74c3c">[陈码]</span>感受到林可手心的温度和微微颤抖，犹豫地点了点头。</div>
+<div class="part-line"><span class="part-num">P3</span>咖啡店外，三个穿黑色制服的人从一辆黑色商务车上下来，每人手持一台改装过的平板电脑，屏幕发出诡异的红光。</div>
+<div class="part-line"><span class="part-num">P4</span><span class="char-tag" style="color:#2ecc71">[林可]</span>瞳孔一缩，低声说：<span class="dialogue">“来了——后门，快走！”</span></div>
+
+  </div>
+  <div class="camera-line">🎥 近景转全景，平视角度，推镜头穿过玻璃窗看向外面，正常速度</div>
+</div>
+
+<div class="segment-card">
+  <div class="segment-header">
+    <span class="segment-num">Segment 9</span>
+    <span class="segment-dur">≤15s</span>
+  </div>
+  <div class="segment-meta">📍 [商业街-夜] &nbsp;|&nbsp; 👥 <span class="char-tag" style="color:#e74c3c">[陈码]</span>, <span class="char-tag" style="color:#2ecc71">[林可]</span></div>
+  <details class="physical-state">
+<summary>📐 Physical State</summary>
+<div class="ps-item">**<span class="char-tag" style="color:#e74c3c">[陈码]</span>**: 画面左侧，弯腰奔跑，右手紧抱背包，视线看向前方街道</div><div class="ps-item">**<span class="char-tag" style="color:#2ecc71">[林可]</span>**: 画面右侧，大步跑在陈码前面，风衣下摆飞扬，右手朝后方指引方向，视线看向左前方</div>
+</details>
+  <div class="parts-container">
+    <div class="part-line"><span class="part-num">P1</span>两人从咖啡店后门冲出，跑进商业步行街，<span class="char-tag" style="color:#2ecc71">[林可]</span>跑在前面带路。</div>
+<div class="part-line"><span class="part-num">P2</span>身后传来沉重的脚步声和电子设备的嗡鸣声——追兵在后面用平板发出红色扫描波。</div>
+<div class="part-line"><span class="part-num">P3</span><span class="char-tag" style="color:#e74c3c">[陈码]</span>感觉到一阵头晕，眼前的代码界面开始卡顿闪烁，喘着气说：<span class="dialogue">“他们在干扰我的系统！”</span></div>
+<div class="part-line"><span class="part-num">P4</span><span class="char-tag" style="color:#3498db">[404姐]</span>的声音在陈码脑海中响起：<span class="dialogue">“他们用的是降频攻击，你的CPU被限速了——现在你的能力大概只有正常的三成。”</span></div>
+
+  </div>
+  <div class="camera-line">🎥 中景，平视角度，手持跟拍，正常速度</div>
+</div>
+
+<div class="segment-card">
+  <div class="segment-header">
+    <span class="segment-num">Segment 10</span>
+    <span class="segment-dur">≤15s</span>
+  </div>
+  <div class="segment-meta">📍 [商业街-夜] &nbsp;|&nbsp; 👥 <span class="char-tag" style="color:#e74c3c">[陈码]</span></div>
+  <details class="physical-state">
+<summary>📐 Physical State</summary>
+<div class="ps-item">**<span class="char-tag" style="color:#e74c3c">[陈码]</span>**: 画面中央，单膝跪地，左手撑着地面，右手在空中快速比划敲击虚拟键盘，额头青筋暴起，视线盯着眼前半透明的代码界面</div>
+</details>
+  <div class="parts-container">
+    <div class="part-line"><span class="part-num">P1</span><span class="char-tag" style="color:#e74c3c">[陈码]</span>跑不动了，单膝跪地，咬牙在虚拟键盘上敲出一段精简代码：<span class="dialogue">“物理加速……只需要三行……”</span></div>
+<div class="part-line"><span class="part-num">P2</span>代码写完的瞬间，陈码的身体周围爆发出一圈金色光波，他感觉全身充满力量。</div>
+<div class="part-line"><span class="part-num">P3</span>但光波并没有停在他身上——金色波纹继续向外扩散，席卷了整条商业街。</div>
+<div class="part-line"><span class="part-num">P4</span><span class="char-tag" style="color:#e74c3c">[陈码]</span>傻眼了，说了一个字：<span class="dialogue">“糟。”</span></div>
+
+  </div>
+  <div class="camera-line">🎥 近景，略带仰角，固定机位，正常速度</div>
+</div>
+
+<div class="segment-card">
+  <div class="segment-header">
+    <span class="segment-num">Segment 11</span>
+    <span class="segment-dur">≤15s</span>
+  </div>
+  <div class="segment-meta">📍 [商业街-夜] &nbsp;|&nbsp; 👥 <span class="char-tag" style="color:#e74c3c">[陈码]</span>, <span class="char-tag" style="color:#3498db">[404姐]</span></div>
+  <details class="physical-state">
+<summary>📐 Physical State</summary>
+<div class="ps-item">**<span class="char-tag" style="color:#e74c3c">[陈码]</span>**: 画面左侧，以极快速度奔跑，衣服和头发被风吹得向后飘，表情又惊又囧，视线看向前方</div><div class="ps-item">**<span class="char-tag" style="color:#3498db">[404姐]</span>**: 画面右上角悬浮，笑到全息投影闪烁不稳定，双手捂着肚子，视线看向下方</div>
+</details>
+  <div class="parts-container">
+    <div class="part-line"><span class="part-num">P1</span>整条街进入<span class="dialogue">“快进模式”</span>——行道树的落叶像子弹一样水平飞射，路边的猫以闪电般的速度蹿上墙头又弹下来。</div>
+<div class="part-line"><span class="part-num">P2</span>共享单车被加速的风吹得沿街翻滚，路人以滑稽的快动作姿势手忙脚乱地躲避。</div>
+<div class="part-line"><span class="part-num">P3</span>身后的三个追兵也被加速了，但他们不适应突然的速度变化，一个撞上电线杆，一个踩到加速的落叶打滑，第三个被飞来的猫糊了一脸。</div>
+<div class="part-line"><span class="part-num">P4</span><span class="char-tag" style="color:#3498db">[404姐]</span>笑到全息形态都在闪烁，艰难地说：<span class="dialogue">“恭喜你……把整条街变成了二倍速快进。评分：代码能力D-，搞笑能力S+。”</span></div>
+
+  </div>
+  <div class="camera-line">🎥 全景，略带俯角，快速横摇展现混乱场面，正常速度</div>
+</div>
+
+<div class="segment-card">
+  <div class="segment-header">
+    <span class="segment-num">Segment 12</span>
+    <span class="segment-dur">≤15s</span>
+  </div>
+  <div class="segment-meta">📍 [商业街-夜] &nbsp;|&nbsp; 👥 <span class="char-tag" style="color:#e74c3c">[陈码]</span>, <span class="char-tag" style="color:#2ecc71">[林可]</span></div>
+  <details class="physical-state">
+<summary>📐 Physical State</summary>
+<div class="ps-item">**<span class="char-tag" style="color:#e74c3c">[陈码]</span>**: 画面左侧，利用加速效果高速跑动，双臂大幅摆动，表情狼狈但带着一丝得意，视线看向右前方</div><div class="ps-item">**<span class="char-tag" style="color:#2ecc71">[林可]</span>**: 画面右侧，同样高速跑动，马尾在身后水平飘起，右手拉着陈码的袖子，视线看向前方</div>
+</details>
+  <div class="parts-container">
+    <div class="part-line"><span class="part-num">P1</span><span class="char-tag" style="color:#e74c3c">[陈码]</span>趁追兵混乱的间隙，拉着林可的手拼命往前跑，加速效果让两人的速度快得脚下生风。</div>
+<div class="part-line"><span class="part-num">P2</span><span class="char-tag" style="color:#2ecc71">[林可]</span>边跑边喊：<span class="dialogue">“前面地下商场有个废弃网吧，可以临时躲一下！”</span></div>
+<div class="part-line"><span class="part-num">P3</span>两人冲下地下商场的楼梯，加速效果在他们离开街面后逐渐消退，速度恢复正常。</div>
+<div class="part-line"><span class="part-num">P4</span><span class="char-tag" style="color:#e74c3c">[陈码]</span>撑着墙大口喘气，回头看了一眼——追兵还在街面上被猫和落叶搞得焦头烂额。</div>
+
+  </div>
+  <div class="camera-line">🎥 中景，平视角度，手持跟拍转固定机位，正常速度</div>
+</div>
+
+<div class="segment-card">
+  <div class="segment-header">
+    <span class="segment-num">Segment 13</span>
+    <span class="segment-dur">≤15s</span>
+  </div>
+  <div class="segment-meta">📍 [废弃网吧-夜] &nbsp;|&nbsp; 👥 <span class="char-tag" style="color:#e74c3c">[陈码]</span>, <span class="char-tag" style="color:#2ecc71">[林可]</span>, <span class="char-tag" style="color:#3498db">[404姐]</span></div>
+  <details class="physical-state">
+<summary>📐 Physical State</summary>
+<div class="ps-item">**<span class="char-tag" style="color:#e74c3c">[陈码]</span>**: 画面左侧，瘫坐在破旧沙发上，头向后仰靠着沙发背，双手自然垂在身体两侧，视线看向天花板</div><div class="ps-item">**<span class="char-tag" style="color:#2ecc71">[林可]</span>**: 画面右侧，站在门口警戒，右手扶着门框，视线通过门缝看向走廊</div><div class="ps-item">**<span class="char-tag" style="color:#3498db">[404姐]</span>**: 画面中央陈码上方悬浮，全息形态恢复稳定，双臂抱胸，视线看向林可方向</div>
+</details>
+  <div class="parts-container">
+    <div class="part-line"><span class="part-num">P1</span>废弃网吧里弥漫着灰尘和旧电子元件的味道，几台老旧CRT显示器堆在角落，天花板的霓虹灯管闪烁着蓝紫色的光。</div>
+<div class="part-line"><span class="part-num">P2</span><span class="char-tag" style="color:#e74c3c">[陈码]</span>瘫在沙发上，望着天花板，语气疲惫说：<span class="dialogue">“刚才那个快进bug……我是不是把整条街的猫都得罪了？”</span></div>
+<div class="part-line"><span class="part-num">P3</span><span class="char-tag" style="color:#3498db">[404姐]</span>翻了个白眼说：<span class="dialogue">“猫没事，倒是有个追兵被猫挠了满脸花。我截了图，留着当你的黑历史。”</span></div>
+<div class="part-line"><span class="part-num">P4</span><span class="char-tag" style="color:#2ecc71">[林可]</span>从门口转身，确认暂时安全，走到陈码对面坐下，表情从紧张变为平静。</div>
+
+  </div>
+  <div class="camera-line">🎥 全景转中景，平视角度，缓慢环摇展现空间，正常速度</div>
+</div>
+
+<div class="segment-card">
+  <div class="segment-header">
+    <span class="segment-num">Segment 14</span>
+    <span class="segment-dur">≤15s</span>
+  </div>
+  <div class="segment-meta">📍 [废弃网吧-夜] &nbsp;|&nbsp; 👥 <span class="char-tag" style="color:#e74c3c">[陈码]</span>, <span class="char-tag" style="color:#3498db">[404姐]</span></div>
+  <details class="physical-state">
+<summary>📐 Physical State</summary>
+<div class="ps-item">**<span class="char-tag" style="color:#e74c3c">[陈码]</span>**: 画面左侧，从沙发上坐直身体，双手放在膝盖上，视线认真地看向右上方悬浮的404姐</div><div class="ps-item">**<span class="char-tag" style="color:#3498db">[404姐]</span>**: 画面右上方悬浮，表情从惯常的不屑变为罕见的沉默，视线看向斜下方的地面</div>
+</details>
+  <div class="parts-container">
+    <div class="part-line"><span class="part-num">P1</span><span class="char-tag" style="color:#e74c3c">[陈码]</span>坐直身体，看着404姐，语气认真说：<span class="dialogue">“你到底是什么？从EP01到现在，你一直在帮我，但你连自己是什么都不肯说。”</span></div>
+<div class="part-line"><span class="part-num">P2</span><span class="char-tag" style="color:#3498db">[404姐]</span>沉默了几秒——这是她第一次没有立刻回嘴，全息投影的光芒变得暗淡了一些。</div>
+<div class="part-line"><span class="part-num">P3</span><span class="char-tag" style="color:#e74c3c">[陈码]</span>察觉到异常，轻声说：<span class="dialogue">“404……你怎么了？”</span></div>
+<div class="part-line"><span class="part-num">P4</span><span class="char-tag" style="color:#3498db">[404姐]</span>缓缓抬起视线，表情罕见地没有任何嘲讽，说：<span class="dialogue">“你真的想知道？”</span></div>
+
+  </div>
+  <div class="camera-line">🎥 近景，平视角度，缓慢推镜头，正常速度</div>
+</div>
+
+<div class="segment-card">
+  <div class="segment-header">
+    <span class="segment-num">Segment 15</span>
+    <span class="segment-dur">≤15s</span>
+  </div>
+  <div class="segment-meta">📍 [废弃网吧-夜] &nbsp;|&nbsp; 👥 <span class="char-tag" style="color:#e74c3c">[陈码]</span>, <span class="char-tag" style="color:#3498db">[404姐]</span></div>
+  <details class="physical-state">
+<summary>📐 Physical State</summary>
+<div class="ps-item">**<span class="char-tag" style="color:#e74c3c">[陈码]</span>**: 画面左侧，身体微微前倾，双手交握放在膝盖上，视线专注地看向右侧的404姐</div><div class="ps-item">**<span class="char-tag" style="color:#3498db">[404姐]</span>**: 画面右侧，悬浮高度降低到与陈码平视，全息形态的蓝色光芒变得柔和而黯淡，双手垂在身侧，视线直视陈码</div>
+</details>
+  <div class="parts-container">
+    <div class="part-line"><span class="part-num">P1</span><span class="char-tag" style="color:#3498db">[404姐]</span>深吸一口气——虽然她并不需要呼吸——缓缓开口说：<span class="dialogue">“我不是被设计出来的AI。”</span></div>
+<div class="part-line"><span class="part-num">P2</span><span class="char-tag" style="color:#3498db">[404姐]</span>的全息形态微微颤抖，边缘的数据粒子变得不稳定，说：<span class="dialogue">“我是……残留数据。上一个使用源码编辑器的人，在系统崩溃时把自己的意识碎片写进了错误日志。”</span></div>
+<div class="part-line"><span class="part-num">P3</span>整个废弃网吧陷入寂静，只有老旧灯管发出的电流嗡鸣声。</div>
+<div class="part-line"><span class="part-num">P4</span><span class="char-tag" style="color:#3498db">[404姐]</span>嘴角牵出一个苦涩的微笑说：<span class="dialogue">“所以我是404——一个找不到页面的人。”</span></div>
+
+  </div>
+  <div class="camera-line">🎥 特写，平视角度，固定机位，正常速度</div>
+</div>
+
+<div class="segment-card">
+  <div class="segment-header">
+    <span class="segment-num">Segment 16</span>
+    <span class="segment-dur">≤15s</span>
+  </div>
+  <div class="segment-meta">📍 [废弃网吧-夜] &nbsp;|&nbsp; 👥 <span class="char-tag" style="color:#e74c3c">[陈码]</span>, <span class="char-tag" style="color:#3498db">[404姐]</span></div>
+  <details class="physical-state">
+<summary>📐 Physical State</summary>
+<div class="ps-item">**<span class="char-tag" style="color:#e74c3c">[陈码]</span>**: 画面左侧，身体完全僵住，嘴唇微张，眼眶微红，视线直直地看着404姐</div><div class="ps-item">**<span class="char-tag" style="color:#3498db">[404姐]</span>**: 画面右侧，悬浮在原处，全息光芒进一步黯淡，表情平静但眼角有一丝不自然的光闪，视线看向左侧陈码</div>
+</details>
+  <div class="parts-container">
+    <div class="part-line"><span class="part-num">P1</span>沉默持续了很长时间。<span class="char-tag" style="color:#e74c3c">[陈码]</span>的喉结上下滚动了一下，声音发紧说：<span class="dialogue">“那……上一个使用者呢？”</span></div>
+<div class="part-line"><span class="part-num">P2</span><span class="char-tag" style="color:#3498db">[404姐]</span>闭上眼睛，全息投影的光芒暗了一瞬，然后重新亮起，说：<span class="dialogue">“死了。”</span></div>
+<div class="part-line"><span class="part-num">P3</span><span class="char-tag" style="color:#e74c3c">[陈码]</span>的手指猛地攥紧膝盖上的牛仔裤布料，指节发白。</div>
+<div class="part-line"><span class="part-num">P4</span><span class="char-tag" style="color:#3498db">[404姐]</span>睁开眼，恢复了一点点平时的锐利，一字一顿说：<span class="dialogue">“被赵启明杀死的。”</span></div>
+
+  </div>
+  <div class="camera-line">🎥 特写交替（陈码脸部-404姐脸部），平视角度，缓慢推镜头，正常速度</div>
+</div>
+
+<div class="segment-card">
+  <div class="segment-header">
+    <span class="segment-num">Segment 17</span>
+    <span class="segment-dur">≤15s</span>
+  </div>
+  <div class="segment-meta">📍 [废弃网吧-夜] &nbsp;|&nbsp; 👥 <span class="char-tag" style="color:#e74c3c">[陈码]</span>, <span class="char-tag" style="color:#3498db">[404姐]</span>, <span class="char-tag" style="color:#2ecc71">[林可]</span></div>
+  <details class="physical-state">
+<summary>📐 Physical State</summary>
+<div class="ps-item">**<span class="char-tag" style="color:#e74c3c">[陈码]</span>**: 画面左侧，低头沉默，双手紧握成拳放在膝盖上，视线看向地面</div><div class="ps-item">**<span class="char-tag" style="color:#3498db">[404姐]</span>**: 画面中央上方悬浮，恢复了一点平时的表情，双臂重新抱胸，视线看向远处</div><div class="ps-item">**<span class="char-tag" style="color:#2ecc71">[林可]</span>**: 画面右侧背景处，靠在墙边安静地听着，表情复杂，左手无意识地抚摸右手腕的蓝色光痕，视线低垂</div>
+</details>
+  <div class="parts-container">
+    <div class="part-line"><span class="part-num">P1</span><span class="char-tag" style="color:#e74c3c">[陈码]</span>低着头，拳头攥得很紧，沉默了一会儿，终于抬起头说：<span class="dialogue">“所以你帮我……是因为不想让同样的事再发生？”</span></div>
+<div class="part-line"><span class="part-num">P2</span><span class="char-tag" style="color:#3498db">[404姐]</span>没有直接回答，只是翻了个白眼——但这次翻得没那么用力，说：<span class="dialogue">“别自作多情，我只是讨厌赵启明那张脸。”</span></div>
+<div class="part-line"><span class="part-num">P3</span><span class="char-tag" style="color:#e74c3c">[陈码]</span>嘴角微微上扬，说：<span class="dialogue">“收到。”</span></div>
+<div class="part-line"><span class="part-num">P4</span>角落里，<span class="char-tag" style="color:#2ecc71">[林可]</span>的左手指尖不自觉地按在右手腕的蓝色光痕上，光痕在指尖的触碰下微微亮了一下。</div>
+
+  </div>
+  <div class="camera-line">🎥 中景，平视角度，缓慢横摇从陈码到林可，正常速度</div>
+</div>
+
+<div class="segment-card">
+  <div class="segment-header">
+    <span class="segment-num">Segment 18</span>
+    <span class="segment-dur">≤15s</span>
+  </div>
+  <div class="segment-meta">📍 [废弃网吧-夜] &nbsp;|&nbsp; 👥 <span class="char-tag" style="color:#e74c3c">[陈码]</span></div>
+  <details class="physical-state">
+<summary>📐 Physical State</summary>
+<div class="ps-item">**<span class="char-tag" style="color:#e74c3c">[陈码]</span>**: 画面中央，从沙发上站起来，右手从裤袋里掏出手机，视线看向手机屏幕</div>
+</details>
+  <div class="parts-container">
+    <div class="part-line"><span class="part-num">P1</span>一阵短促的震动声打破了沉重的气氛——<span class="char-tag" style="color:#e74c3c">[陈码]</span>裤袋里的手机在震动。</div>
+<div class="part-line"><span class="part-num">P2</span><span class="char-tag" style="color:#e74c3c">[陈码]</span>掏出手机，屏幕上显示一条来自未知号码的消息，消息内容是一段密密麻麻的加密代码。</div>
+<div class="part-line"><span class="part-num">P3</span><span class="char-tag" style="color:#e74c3c">[陈码]</span>皱眉盯着代码，程序员的本能让他快速在脑中解析——这是一段Base64编码。</div>
+<div class="part-line"><span class="part-num">P4</span><span class="char-tag" style="color:#e74c3c">[陈码]</span>双手快速操作手机解密，屏幕上的乱码逐渐变成可读的文字，只有一行。</div>
+
+  </div>
+  <div class="camera-line">🎥 近景，略带俯角，固定机位，正常速度</div>
+</div>
+
+<div class="segment-card">
+  <div class="segment-header">
+    <span class="segment-num">Segment 19</span>
+    <span class="segment-dur">≤15s</span>
+  </div>
+  <div class="segment-meta">📍 [废弃网吧-夜] &nbsp;|&nbsp; 👥 <span class="char-tag" style="color:#e74c3c">[陈码]</span></div>
+  <details class="physical-state">
+<summary>📐 Physical State</summary>
+<div class="ps-item">**<span class="char-tag" style="color:#e74c3c">[陈码]</span>**: 画面中央，双手握着手机，手指微微发抖，瞳孔急剧收缩，视线死死盯着手机屏幕上的文字</div>
+</details>
+  <div class="parts-container">
+    <div class="part-line"><span class="part-num">P1</span>手机屏幕上，白底黑字清清楚楚地显示着一行话：<span class="dialogue">“第三个源码编辑器使用者已上线。”</span></div>
+<div class="part-line"><span class="part-num">P2</span><span class="char-tag" style="color:#e74c3c">[陈码]</span>咽了一口唾沫，手指不自觉地向下滑动——下面还有一行小字。</div>
+<div class="part-line"><span class="part-num">P3</span>第二行写着：<span class="dialogue">“位置：你旁边。”</span></div>
+<div class="part-line"><span class="part-num">P4</span><span class="char-tag" style="color:#e74c3c">[陈码]</span>的瞳孔猛地放大，后背一阵发凉，手机几乎从手中滑落。</div>
+
+  </div>
+  <div class="camera-line">🎥 特写（手机屏幕→陈码面部），正常速度</div>
+</div>
+
+<div class="segment-card">
+  <div class="segment-header">
+    <span class="segment-num">Segment 20</span>
+    <span class="segment-dur">≤15s</span>
+  </div>
+  <div class="segment-meta">📍 [废弃网吧-夜] &nbsp;|&nbsp; 👥 <span class="char-tag" style="color:#e74c3c">[陈码]</span>, <span class="char-tag" style="color:#2ecc71">[林可]</span></div>
+  <details class="physical-state">
+<summary>📐 Physical State</summary>
+<div class="ps-item">**<span class="char-tag" style="color:#e74c3c">[陈码]</span>**: 画面左侧，猛地转头，全身肌肉绷紧，视线惊恐地看向右侧的林可</div><div class="ps-item">**<span class="char-tag" style="color:#2ecc71">[林可]</span>**: 画面右侧，靠在墙边，双手自然交叉放在身前，嘴角缓缓勾起一个意味深长的微笑，视线直视左侧的陈码</div>
+</details>
+  <div class="parts-container">
+    <div class="part-line"><span class="part-num">P1</span><span class="char-tag" style="color:#e74c3c">[陈码]</span>猛地转头，视线落在坐在角落里的林可身上。</div>
+<div class="part-line"><span class="part-num">P2</span><span class="char-tag" style="color:#2ecc71">[林可]</span>感受到陈码的目光，缓缓抬起头，嘴角慢慢勾起一个意味不明的微笑。</div>
+<div class="part-line"><span class="part-num">P3</span>老旧灯管的蓝紫色光芒落在林可的脸上，她手腕上的蓝色光痕比刚才更亮了——不是微光，而是稳定地散发着与系统能量相同的色泽。</div>
+<div class="part-line"><span class="part-num">P4</span>画面定格在陈码惊恐的面孔和林可微笑的面孔之间，霓虹灯管闪烁一下，画面切黑。</div>
+
+  </div>
+  <div class="camera-line">🎥 中景转特写（陈码脸-林可脸对切），平视角度，快速推镜头，正常速度</div>
+</div>
+
+
+</div>
+
+<script>
+// Auto-open first segment's physical state on load (optional interactivity)
+document.addEventListener('DOMContentLoaded', function() {
+  // Smooth scroll spy - highlight current segment
+  const cards = document.querySelectorAll('.segment-card');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.style.borderColor = 'rgba(88,166,255,0.5)';
+      } else {
+        e.target.style.borderColor = '';
+      }
+    });
+  }, { threshold: 0.3 });
+  cards.forEach(c => observer.observe(c));
+});
+</script>
+</body>
+</html>
