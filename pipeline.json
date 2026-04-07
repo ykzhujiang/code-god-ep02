@@ -11,10 +11,14 @@
     "setting": "现代都市2025，赛博朋克元素",
     "appearance": "east-asian"
   },
-  "status": "not_started",
+  "status": "step1b_done",
   "steps": {
     "step1b": {
-      "status": "not_started"
+      "status": "done",
+      "started_at": "2026-04-07T10:30:31.899921+00:00",
+      "completed_at": "2026-04-07T10:31:32.960599+00:00",
+      "output": "storyboard.md",
+      "segment_count": 12
     },
     "step3": {
       "status": "not_started"
